@@ -100,7 +100,9 @@ public class Settings {
             SAVE_AUTO              = SAVE_BASE + "auto-save",
             SAVE_MINS              = SAVE_BASE + "minutes",
             SAVE_SQL               = SAVE_BASE + "sql-database",
+            SAVE_MONGO             = SAVE_BASE + "mongo-database",
             SAVE_SQLD              = SAVE_BASE + "sql-details",
+            SAVE_MONGOD              = SAVE_BASE + "mongo-details",
             CLASS_BASE             = "Classes.",
             CLASS_MODIFY           = CLASS_BASE + "modify-health",
             CLASS_HP               = CLASS_BASE + "classless-hp",
@@ -218,6 +220,7 @@ public class Settings {
     private CombatProtection    combatProtection = new DefaultCombatProtection();
     private boolean             auto;
     private boolean             useSql;
+    private boolean             useMongo;
     private int                 minutes;
     private int                 sqlDelay;
     /**
@@ -243,6 +246,10 @@ public class Settings {
     private String              sqlDatabase;
     private String              sqlUser;
     private String              sqlPass;
+    @Getter
+    private String              mongoDatabase;
+    @Getter
+    private String              mongoTable;
     private boolean             modifyHealth;
     private int                 defaultHealth;
     private boolean             showAutoSkills;
@@ -938,6 +945,10 @@ public class Settings {
         return useSql;
     }
 
+    public boolean isUseMongo() {
+        return useMongo;
+    }
+
     /**
      * Retrieves the username for the database credentials
      *
@@ -967,8 +978,10 @@ public class Settings {
         auto = config.getBoolean(SAVE_AUTO);
         minutes = config.getInt(SAVE_MINS);
         useSql = config.getBoolean(SAVE_SQL);
+        useMongo = config.getBoolean(SAVE_MONGO);
 
         DataSection details = config.getSection(SAVE_SQLD);
+        DataSection mongoDetails = config.getSection(SAVE_MONGOD);
         sqlDelay = details.getInt("delay");
 
         if (useSql) {
@@ -977,6 +990,10 @@ public class Settings {
             sqlDatabase = details.getString("database");
             sqlUser = details.getString("username");
             sqlPass = details.getString("password");
+        }
+        if (useMongo) {
+            mongoDatabase = mongoDetails.getString("database");
+            mongoTable = mongoDetails.getString("table");
         }
     }
 

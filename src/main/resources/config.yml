@@ -80,6 +80,12 @@ Saving:
   # Whether to use an SQL database to save
   sql-database: false
   #
+  # Whether to use an MongoDB database to save
+  mongo-database: false
+  mongo-details:
+    database: "mc"
+    table: "player_profile"
+  #
   # Details for connecting to the database
   sql-details:
     host: localhost

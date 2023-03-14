@@ -35,6 +35,7 @@ import com.sucy.skill.data.PlayerStats;
 import com.sucy.skill.data.Settings;
 import com.sucy.skill.data.io.ConfigIO;
 import com.sucy.skill.data.io.IOManager;
+import com.sucy.skill.data.io.MongoIO;
 import com.sucy.skill.data.io.SQLIO;
 import com.sucy.skill.dynamic.DynamicClass;
 import com.sucy.skill.dynamic.DynamicSkill;
@@ -635,7 +636,7 @@ public class SkillAPI extends JavaPlugin {
         comboManager = new ComboManager();
         registrationManager = new RegistrationManager(this);
         cmd = new CmdManager(this);
-        io = settings.isUseSql() ? new SQLIO(this) : new ConfigIO(this);
+        io = settings.isUseSql() ? new SQLIO(this) : settings.isUseMongo() ? new MongoIO(this) :new ConfigIO(this);
         PlayerStats.init();
         ClassBoardManager.registerText();
         if (settings.isAttributesEnabled()) {
