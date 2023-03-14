@@ -30,7 +30,7 @@ import com.sucy.skill.SkillAPI;
 import com.sucy.skill.api.particle.target.Followable;
 import com.sucy.skill.log.Logger;
 import mc.promcteam.engine.utils.Reflex;
-import mc.promcteam.engine.utils.reflection.ReflectionUtil;
+import mc.promcteam.engine.utils.reflection.ReflectionManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -64,20 +64,20 @@ public abstract class CustomProjectile extends BukkitRunnable implements Metadat
 
     static {
         try {
-            Class<?> aabbClass = ReflectionUtil.MINOR_VERSION >= 17 ? Reflex.getClass("net.minecraft.world.phys.AxisAlignedBB")
+            Class<?> aabbClass = ReflectionManager.MINOR_VERSION >= 17 ? Reflex.getClass("net.minecraft.world.phys.AxisAlignedBB")
                     : Reflex.getNMSClass("AxisAlignedBB");
-            Class<?> entityClass = ReflectionUtil.MINOR_VERSION >= 17 ? Reflex.getClass("net.minecraft.world.entity.Entity")
+            Class<?> entityClass = ReflectionManager.MINOR_VERSION >= 17 ? Reflex.getClass("net.minecraft.world.entity.Entity")
                     : Reflex.getNMSClass("Entity");
             aabbConstructor = aabbClass.getConstructor(double.class, double.class, double.class, double.class, double.class, double.class);
             getBukkitEntity = entityClass.getDeclaredMethod("getBukkitEntity");
             getHandle = Reflex.getCraftClass("CraftWorld").getDeclaredMethod("getHandle");
-            Class<?> worldClass = ReflectionUtil.MINOR_VERSION >= 17 ? Reflex.getClass("net.minecraft.world.level.World")
+            Class<?> worldClass = ReflectionManager.MINOR_VERSION >= 17 ? Reflex.getClass("net.minecraft.world.level.World")
                     : Reflex.getNMSClass("World");
             try {
-                getEntities = worldClass.getDeclaredMethod(ReflectionUtil.MINOR_VERSION >= 18 ? "a" : "getEntities",
+                getEntities = worldClass.getDeclaredMethod(ReflectionManager.MINOR_VERSION >= 18 ? "a" : "getEntities",
                         entityClass, aabbClass, Predicate.class);
             } catch (Exception e) {
-                getEntitiesGuava = worldClass.getDeclaredMethod(ReflectionUtil.MINOR_VERSION >= 18
+                getEntitiesGuava = worldClass.getDeclaredMethod(ReflectionManager.MINOR_VERSION >= 18
                         ? "a"
                         : "getEntities", entityClass, aabbClass, com.google.common.base.Predicate.class);
             }
@@ -232,7 +232,7 @@ public abstract class CustomProjectile extends BukkitRunnable implements Metadat
     public abstract Location getLocation();
 
     /**
-     * Checks whether or not the projectile is still active
+     * Checks whether the projectile is still active
      *
      * @return true if active, false otherwise
      */
@@ -273,7 +273,7 @@ public abstract class CustomProjectile extends BukkitRunnable implements Metadat
     protected abstract void setVelocity(Vector vel);
 
     /**
-     * Checks whether or not the projectile is still valid.
+     * Checks whether the projectile is still valid.
      * Invalid would mean landing on the ground or leaving the loaded chunks.
      */
     protected boolean isTraveling() {
@@ -393,10 +393,10 @@ public abstract class CustomProjectile extends BukkitRunnable implements Metadat
     }
 
     /**
-     * Sets whether or not the projectile can hit allies or enemies
+     * Sets whether the projectile can hit allies or enemies
      *
-     * @param ally  whether or not allies can be hit
-     * @param enemy whether or not enemies can be hit
+     * @param ally  whether allies can be hit
+     * @param enemy whether enemies can be hit
      */
     public void setAllyEnemy(boolean ally, boolean enemy) {
         this.ally = ally;
@@ -450,10 +450,10 @@ public abstract class CustomProjectile extends BukkitRunnable implements Metadat
     }
 
     /**
-     * <p>Checks whether or not this has a metadata set for the key.</p>
+     * <p>Checks whether this has a metadata set for the key.</p>
      *
      * @param key the key for the metadata
-     * @return whether or not there is metadata set for the key
+     * @return whether there is metadata set for the key
      */
     @Override
     public boolean hasMetadata(String key) {

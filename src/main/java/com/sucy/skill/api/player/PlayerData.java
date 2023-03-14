@@ -26,6 +26,7 @@
  */
 package com.sucy.skill.api.player;
 
+import com.google.common.base.Preconditions;
 import com.sucy.skill.SkillAPI;
 import com.sucy.skill.api.classes.RPGClass;
 import com.sucy.skill.api.enums.*;
@@ -61,6 +62,7 @@ import mc.promcteam.engine.mccore.util.VersionManager;
 import mc.promcteam.engine.utils.EntityUT;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -88,6 +90,7 @@ public class PlayerData {
     public final  HashMap<String, Integer>                       attributes          = new HashMap<>();
     private final HashMap<String, PlayerClass>                   classes             = new HashMap<>();
     private final HashMap<String, PlayerSkill>                   skills              = new HashMap<>();
+    private final HashSet<ExternallyAddedSkill>                  extSkills           = new HashSet<>();
     private final HashMap<Material, PlayerSkill>                 binds               = new HashMap<>();
     private final HashMap<String, List<PlayerAttributeModifier>> attributesModifiers = new HashMap<>();
     private final HashMap<String, List<PlayerStatModifier>>      statModifiers       = new HashMap<>();
@@ -357,7 +360,7 @@ public class PlayerData {
     }
 
     /**
-     * Checks whether or not the player has any
+     * Checks whether the player has any
      * points invested in a given attribute
      *
      * @param key attribute key
@@ -373,7 +376,7 @@ public class PlayerData {
      * has no remaining points, this will do nothing.
      *
      * @param key attribute key
-     * @return whether or not it was successfully upgraded
+     * @return whether it was successfully upgraded
      */
     public boolean upAttribute(String key) {
         key = key.toLowerCase();
@@ -474,7 +477,7 @@ public class PlayerData {
         if (this.attributesModifiers.containsKey(key)) {
             return this.attributesModifiers.get(key);
         } else {
-            return new ArrayList<PlayerAttributeModifier>();
+            return new ArrayList<>();
         }
     }
 
@@ -668,7 +671,15 @@ public class PlayerData {
     public boolean openAttributeMenu() {
         Player player = getPlayer();
         if (SkillAPI.getSettings().isAttributesEnabled() && player != null) {
-            GUITool.getAttributesMenu().show(new AttributeHandler(), this, SkillAPI.getLanguage().getMessage(GUINodes.ATTRIB_TITLE, true, FilterType.COLOR, RPGFilter.POINTS.setReplacement(attribPoints + ""), Filter.PLAYER.setReplacement(player.getName())).get(0), SkillAPI.getAttributeManager().getAttributes());
+            GUITool.getAttributesMenu()
+                    .show(new AttributeHandler(),
+                            this,
+                            SkillAPI.getLanguage().getMessage(GUINodes.ATTRIB_TITLE,
+                                    true,
+                                    FilterType.COLOR, RPGFilter.POINTS.setReplacement(attribPoints + ""),
+                                    Filter.PLAYER.setReplacement(player.getName())
+                            ).get(0), SkillAPI.getAttributeManager().getAttributes()
+                    );
             return true;
         }
         return false;
@@ -767,10 +778,52 @@ public class PlayerData {
 
     public void addSkill(Skill skill, PlayerClass parent) {
         String key = skill.getKey();
-        if (!skills.containsKey(key)) {
+        PlayerSkill existing = skills.get(key);
+        if (existing == null || !existing.isExternal()) {
             PlayerSkill data = new PlayerSkill(this, skill, parent);
             skills.put(key, data);
             combos.addSkill(skill);
+        }
+    }
+
+    public void addSkillExternally(Skill skill, PlayerClass parent, NamespacedKey namespacedKey, int level) {
+        String key = skill.getKey();
+        extSkills.removeIf(extSkill -> extSkill.getId().equals(key) && extSkill.getKey().equals(namespacedKey));
+        extSkills.add(new ExternallyAddedSkill(key, namespacedKey, level));
+
+        PlayerSkill existing = skills.get(key);
+        if (existing == null || existing.getLevel() == 0) {
+            PlayerSkill data = new PlayerSkill(this, skill, parent, true);
+            skills.put(key, data);
+            combos.addSkill(skill);
+            forceUpSkill(data, level);
+        } else if (existing.isExternal() && level > existing.getLevel()) {
+            forceUpSkill(existing, level-existing.getLevel());
+        }
+    }
+
+    public void removeSkillExternally(Skill skill, NamespacedKey namespacedKey) {
+        String key = skill.getKey();
+        extSkills.removeIf(extSkill -> extSkill.getId().equals(key) && extSkill.getKey().equals(namespacedKey));
+        PlayerSkill existing = skills.get(key);
+        if (existing != null && existing.isExternal()) {
+            ExternallyAddedSkill max = null;
+            int maxLevel = Integer.MIN_VALUE;
+            for (ExternallyAddedSkill extSkill : extSkills) {
+                if (!extSkill.getId().equals(key)) { continue; }
+                int level = extSkill.getLevel();
+                if (level > maxLevel) {
+                    maxLevel = level;
+                    max = extSkill;
+                }
+            }
+            if (max == null) {
+                skills.remove(key);
+                combos.removeSkill(existing.getData());
+                forceDownSkill(existing, existing.getLevel());
+            } else {
+                forceDownSkill(existing, existing.getLevel()-maxLevel);
+            }
         }
     }
 
@@ -864,16 +917,23 @@ public class PlayerData {
      * @param skill skill to forcefully upgrade
      */
     public void forceUpSkill(PlayerSkill skill) {
-        skill.addLevels(1);
+        forceUpSkill(skill, 1);
+    }
+
+    public void forceUpSkill(PlayerSkill skill, int amount) {
+        Preconditions.checkArgument(amount >= 0);
+        if (amount == 0) { return; }
+        int oldLevel = skill.getLevel();
+        skill.addLevels(amount);
 
         // Passive calls
         if (passive) {
             Player player = getPlayer();
             if (player != null && skill.getData() instanceof PassiveSkill) {
-                if (skill.getLevel() == 1) {
+                if (oldLevel == 0) {
                     ((PassiveSkill) skill.getData()).initialize(player, skill.getLevel());
                 } else {
-                    ((PassiveSkill) skill.getData()).update(player, skill.getLevel() - 1, skill.getLevel());
+                    ((PassiveSkill) skill.getData()).update(player, oldLevel, skill.getLevel());
                 }
             }
 
@@ -943,7 +1003,13 @@ public class PlayerData {
      * @param skill skill to forcefully downgrade
      */
     public void forceDownSkill(PlayerSkill skill) {
-        skill.addLevels(-1);
+        forceDownSkill(skill, 1);
+    }
+
+    public void forceDownSkill(PlayerSkill skill, int amount) {
+        Preconditions.checkArgument(amount >= 0);
+        if (amount == 0) { return; }
+        skill.addLevels(-amount);
 
         // Passive calls
         Player player = getPlayer();
@@ -951,7 +1017,7 @@ public class PlayerData {
             if (skill.getLevel() == 0) {
                 ((PassiveSkill) skill.getData()).stopEffects(player, 1);
             } else {
-                ((PassiveSkill) skill.getData()).update(player, skill.getLevel() + 1, skill.getLevel());
+                ((PassiveSkill) skill.getData()).update(player, skill.getLevel() + amount, skill.getLevel());
             }
         }
 
@@ -1103,7 +1169,7 @@ public class PlayerData {
     }
 
     /**
-     * Checks whether or not the player has as least one class they have professed as.
+     * Checks whether the player has as least one class they have professed as.
      *
      * @return true if professed, false otherwise
      */
@@ -1112,7 +1178,7 @@ public class PlayerData {
     }
 
     /**
-     * Checks whether or not a player has a class within the given group
+     * Checks whether a player has a class within the given group
      *
      * @param group class group to check
      * @return true if has a class in the group, false otherwise
@@ -1205,7 +1271,7 @@ public class PlayerData {
         }
 
         PlayerClass classData = new PlayerClass(this, rpgClass);
-        if (!reset) {
+        if (!reset && c != null) {
             classData.setLevel(c.getLevel());
             classData.setExp(c.getExp());
             classData.setPoints(c.getPoints());
@@ -1223,7 +1289,7 @@ public class PlayerData {
     }
 
     /**
-     * Checks whether or not the player is professed as the class
+     * Checks whether the player is professed as the class
      * without checking child classes.
      *
      * @param rpgClass class to check
@@ -1238,7 +1304,7 @@ public class PlayerData {
     }
 
     /**
-     * Checks whether or not the player is professed as the class
+     * Checks whether the player is professed as the class
      * or any of its children.
      *
      * @param rpgClass class to check
@@ -1266,7 +1332,7 @@ public class PlayerData {
     }
 
     /**
-     * Checks whether or not the player can profess into the given class. This
+     * Checks whether the player can profess into the given class. This
      * checks to make sure the player is currently professed as the parent of the
      * given class and is high enough of a level to do so.
      *
@@ -1443,7 +1509,7 @@ public class PlayerData {
      *
      * @param amount  amount of experience to give
      * @param source  source of the experience
-     * @param message whether or not to show the configured message if enabled
+     * @param message whether to show the configured message if enabled
      */
     public void giveExp(double amount, ExpSource source, boolean message) {
         for (PlayerClass playerClass : classes.values()) {
@@ -1644,11 +1710,8 @@ public class PlayerData {
 
         double modifiedMax = getModifiedMaxHealth(player);
 
-        if (VersionManager.isVersionAtLeast(VersionManager.V1_9_0)) {
-            final AttributeInstance attribute = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
-            attribute.setBaseValue(this.maxHealth);
-        } else
-            player.setMaxHealth(this.maxHealth);
+        final AttributeInstance attribute = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        attribute.setBaseValue(this.maxHealth);
 
         // Health scaling is available starting with 1.6.2
         if (SkillAPI.getSettings().isOldHealth()) {
@@ -1693,7 +1756,7 @@ public class PlayerData {
     }
 
     /**
-     * Checks whether or not the player has at least the specified amount of mana
+     * Checks whether the player has at least the specified amount of mana
      *
      * @param amount required mana amount
      * @return true if has the amount of mana, false otherwise
@@ -1924,7 +1987,7 @@ public class PlayerData {
     }
 
     /**
-     * Checks whether or not the material has a skill bound to it
+     * Checks whether the material has a skill bound to it
      *
      * @param mat material to check
      * @return true if a skill is bound to it, false otherwise
@@ -2193,8 +2256,8 @@ public class PlayerData {
      * Checks the cooldown and mana requirements for a skill
      *
      * @param skill    skill to check for
-     * @param cooldown whether or not to check cooldowns
-     * @param mana     whether or not to check mana requirements
+     * @param cooldown whether to check cooldowns
+     * @param mana     whether to check mana requirements
      * @return true if can use
      */
     public boolean check(PlayerSkill skill, boolean cooldown, boolean mana) {
@@ -2250,5 +2313,23 @@ public class PlayerData {
 
         this.autoLevel();
         this.updateScoreboard();
+    }
+
+    private static class ExternallyAddedSkill {
+        private final String        id;
+        private final NamespacedKey key;
+        private final int           level;
+
+        public ExternallyAddedSkill(String id, NamespacedKey key, int level) {
+            this.id = id;
+            this.key = key;
+            this.level = level;
+        }
+
+        public String getId() { return id; }
+
+        public NamespacedKey getKey() { return key; }
+
+        public int getLevel() { return level; }
     }
 }

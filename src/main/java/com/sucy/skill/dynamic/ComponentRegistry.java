@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * SkillAPI © 2018
+ * ProSkillAPI © 2023
  * com.sucy.skill.dynamic.ComponentRegistry
  */
 public class ComponentRegistry {
@@ -57,6 +57,7 @@ public class ComponentRegistry {
         register(new PhysicalTakenTrigger());
         register(new SkillDealtTrigger());
         register(new SkillTakenTrigger());
+        register(new SkillCastTrigger());
 
         // Targets
         register(new AreaTarget());
@@ -207,7 +208,7 @@ public class ComponentRegistry {
             throw new IllegalArgumentException("Invalid component key - " + key);
         }
         try {
-            return (EffectComponent) componentClass.newInstance();
+            return (EffectComponent) componentClass.getDeclaredConstructor().newInstance();
         } catch (final Exception ex) {
             throw new IllegalArgumentException("Invalid component - does not have a default constructor");
         }
@@ -247,7 +248,7 @@ public class ComponentRegistry {
             builder.append(']');
         }
 
-        final File file = new File(SkillAPI.getPlugin(SkillAPI.class).getDataFolder(), "tool-config.json");
+        final File file = new File(SkillAPI.inst().getDataFolder(), "tool-config.json");
         try (final FileOutputStream out = new FileOutputStream(file)) {
             final BufferedWriter write = new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8));
             write.write(builder.toString());

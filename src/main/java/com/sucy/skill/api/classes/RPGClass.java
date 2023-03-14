@@ -315,8 +315,8 @@ public abstract class RPGClass implements IconHolder {
         ItemMeta     iconMeta = icon.getItemMeta();
         ItemMeta     meta     = item.getItemMeta();
         List<String> lore     = iconMeta.hasLore() ? iconMeta.getLore() : new ArrayList<>();
-        if (iconMeta.hasDisplayName())
-            lore.add(0, iconMeta.getDisplayName());
+        if (iconMeta.hasDisplayName()) lore.add(0, iconMeta.getDisplayName());
+
         meta.setDisplayName(name);
         meta.setLore(lore);
         item.setItemMeta(meta);
@@ -339,7 +339,7 @@ public abstract class RPGClass implements IconHolder {
     }
 
     /**
-     * Checks whether or not the class receives experience
+     * Checks whether the class receives experience
      * from the given source
      *
      * @param source source of experience to check
@@ -497,7 +497,7 @@ public abstract class RPGClass implements IconHolder {
     }
 
     /**
-     * Checks whether or not this class has mana regeneration
+     * Checks whether this class has mana regeneration
      *
      * @return true if has mana regeneration, false otherwise
      */

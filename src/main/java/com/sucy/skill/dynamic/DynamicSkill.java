@@ -103,7 +103,7 @@ public class DynamicSkill extends Skill implements SkillShot, PassiveSkill, List
     }
 
     /**
-     * Checks whether or not the dynamic skill can be cast
+     * Checks whether the dynamic skill can be cast
      *
      * @return true if can cast, false otherwise
      */
@@ -112,7 +112,7 @@ public class DynamicSkill extends Skill implements SkillShot, PassiveSkill, List
     }
 
     /**
-     * Checks whether or not the caster's passives are currently active
+     * Checks whether the caster's passives are currently active
      *
      * @param caster caster to check for
      * @return true if active, false otherwise
@@ -226,7 +226,7 @@ public class DynamicSkill extends Skill implements SkillShot, PassiveSkill, List
     @Override
     public void stopEffects(final LivingEntity user, final int level) {
         active.remove(user.getEntityId());
-        if (forced.contains(user.getEntityId())) forced.remove(new Integer(user.getEntityId()));
+        if (forced.contains(user.getEntityId())) forced.remove(Integer.valueOf(user.getEntityId()));
         for (final TriggerHandler triggerHandler : triggers) {
             triggerHandler.cleanup(user);
         }

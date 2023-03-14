@@ -131,6 +131,7 @@ public abstract class IOManager {
         DataSection    accounts = file.getSection(ACCOUNTS);
         if (accounts == null) {
             data.getActiveData().endInit();
+            data.isLoaded(true);
             return data;
         }
         for (String accountKey : accounts.keys()) {
@@ -288,6 +289,7 @@ public abstract class IOManager {
                 // Save skills
                 DataSection skills = account.createSection(SKILLS);
                 for (PlayerSkill skill : acc.getSkills()) {
+                    if (skill.isExternal()) { continue; }
                     DataSection skillSection = skills.createSection(skill.getData().getName());
                     skillSection.set(LEVEL, skill.getLevel());
                     if (skill.isOnCooldown())
