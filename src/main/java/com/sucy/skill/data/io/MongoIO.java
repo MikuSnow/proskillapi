@@ -56,6 +56,7 @@ public class MongoIO extends IOManager {
 
     @Getter
     private MongoWrapper.MongoDatabaseWrapper mongoCollection;
+
     /**
      * Initializes the SQL IO Manager
      *
@@ -65,7 +66,6 @@ public class MongoIO extends IOManager {
         super(api);
         manageMongo();
     }
-
 
     private void manageMongo() {
         MongoWrapper mongoWrapper = ORM.globalMongoWrapper();
@@ -79,26 +79,8 @@ public class MongoIO extends IOManager {
                     new BasicDBObject("_id", ""),
                     (new BasicDBObject("name", "_id")).append("unique", true));
 
-//            dbCollection.createIndex(
-//                    new BasicDBObject("_id", ""),
-//                    (new BasicDBObject("name", "_id")).append("unique", true)
-//            );
         });
     }
-//
-//    private SQLConnection openConnection() {
-//        SQLConnection connection = new SQLConnection();
-//
-//        Settings settings = SkillAPI.getSettings();
-//        connection.database = new SQLDatabase(api, settings.getSqlHost(), settings.getSqlPort(),
-//                settings.getSqlDatabase(), settings.getSqlUser(), settings.getSqlPass());
-//        connection.database.openConnection();
-//        connection.table = connection.database.createTable(api, "players");
-//
-//        connection.table.createColumn(ID, ColumnType.INCREMENT);
-//        connection.table.createColumn(DATA, ColumnType.TEXT);
-//        return connection;
-//    }
 
     @Override
     public HashMap<String, PlayerAccounts> loadAll() {
@@ -115,9 +97,7 @@ public class MongoIO extends IOManager {
     public PlayerAccounts loadData(OfflinePlayer player) {
         if (player == null) return null;
 
-        PlayerAccounts result = load(player);
-
-        return result;
+        return load(player);
     }
 
     @Override
@@ -127,8 +107,8 @@ public class MongoIO extends IOManager {
 
     @Override
     public void saveAll() {
-        HashMap<String, PlayerAccounts> data       = SkillAPI.getPlayerAccountData();
-        ArrayList<String>               keys       = new ArrayList<String>(data.keySet());
+        HashMap<String, PlayerAccounts> data = SkillAPI.getPlayerAccountData();
+        ArrayList<String> keys = new ArrayList<String>(data.keySet());
         for (String key : keys) {
             saveSingle(data.get(key));
         }
@@ -137,7 +117,7 @@ public class MongoIO extends IOManager {
     private PlayerAccounts load(OfflinePlayer player) {
         //TODO 支持MONGODB
         try {
-            String      playerKey = player.getUniqueId().toString().toLowerCase();
+            String playerKey = player.getUniqueId().toString().toLowerCase();
 //            DataSection file      = YAMLParser.parseText(connection.table.createEntry(playerKey).getString(DATA), STRING);
             Map<?, ?> map = this.mongoCollection.find(Map.class, new BasicDBObject("_id", player.getUniqueId().toString()));
             String s = JSONObject.toJSONString(map);
@@ -154,7 +134,9 @@ public class MongoIO extends IOManager {
         DataSection file = save(data);
         Set<Map.Entry<String, Object>> entries = file.entrySet();
 
-        Map<String, Object> mapFromSet = entries.stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b)->b));
+//        Map<String, Object> mapFromSet = entries.stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b)->b));
+        Map<String, Object> mapFromSet = new HashMap<>();
+        toMap(file, mapFromSet);
 
         try {
             String playerKey = data.getOfflinePlayer().getUniqueId().toString().toLowerCase();
@@ -163,20 +145,29 @@ public class MongoIO extends IOManager {
 
             this.mongoCollection.open(dbCollection -> {
                 if (isEmpty) {
-
-                    dbCollection.save(new BasicDBObject(mapFromSet).append("_id", playerKey));
+                    System.out.println(mapFromSet);
+                    dbCollection.save(new BasicDBObject(ORM.serialize(mapFromSet)).append("_id", playerKey));
                 } else {
-                    dbCollection.update(new BasicDBObject("_id", playerKey), new BasicDBObject("$set", new BasicDBObject(mapFromSet)), true, false);
+                    dbCollection.update(new BasicDBObject("_id", playerKey), new BasicDBObject("$set", new BasicDBObject(ORM.serialize(mapFromSet))), true, false);
                 }
             });
 
-        } catch (Exception ex) {
-            Logger.bug("Failed to save data for invalid player");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
-    private class SQLConnection {
-        private SQLDatabase database;
-        private SQLTable    table;
+    private void toMap(DataSection dataSection, Map<String, Object> map) {
+        for (String key : dataSection.keys()) {
+            if (dataSection.get(key) instanceof DataSection) {
+                DataSection ds = (DataSection) dataSection.get(key);
+                HashMap<String, Object> mp = new HashMap<>();
+                toMap(ds, mp);
+                map.put(key, mp);
+            } else {
+                map.put(key, dataSection.get(key));
+            }
+
+        }
     }
 }
