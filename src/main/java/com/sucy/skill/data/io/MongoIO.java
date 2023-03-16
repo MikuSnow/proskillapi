@@ -115,15 +115,12 @@ public class MongoIO extends IOManager {
     }
 
     private PlayerAccounts load(OfflinePlayer player) {
-        //TODO 支持MONGODB
         try {
-            String playerKey = player.getUniqueId().toString().toLowerCase();
-//            DataSection file      = YAMLParser.parseText(connection.table.createEntry(playerKey).getString(DATA), STRING);
-            Map<?, ?> map = this.mongoCollection.find(Map.class, new BasicDBObject("_id", player.getUniqueId().toString()));
+            Map<?, ?> map = this.mongoCollection.find(Map.class, new BasicDBObject("_id", player.getUniqueId().toString().toLowerCase()));
             String s = JSONObject.toJSONString(map);
 
             DataSection file = JSONParser.parseText(s); //TODO 检查此处是否工作良好
-            return load(player, file);
+            return loadMongo(player, file);
         } catch (Exception ex) {
             Logger.bug("Failed to load data from the SQL Database - " + ex.getMessage());
             return null;

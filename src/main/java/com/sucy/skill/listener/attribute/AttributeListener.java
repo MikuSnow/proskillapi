@@ -49,6 +49,8 @@ import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.Random;
+
 /**
  * Listener for managing applying attribute bonuses for players
  */
@@ -127,7 +129,7 @@ public class AttributeListener extends SkillAPIListener {
             Player    player = (Player) event.getDamager();
             ItemStack item = player.getInventory().getItemInMainHand();
             // If it's an RPGItem, we'll handle this in RPGAttributeListener
-            if(PluginChecker.isRPGItemsActive() && RPGItemsHook.isRPGItem(item)) return;
+            if (PluginChecker.isRPGItemsActive() && RPGItemsHook.isRPGItem(item)) return;
             if (CitizensHook.isNPC(player)) return;
 
             PlayerData data = SkillAPI.getPlayerData(player);
@@ -137,6 +139,11 @@ public class AttributeListener extends SkillAPIListener {
                 newAmount = data.scaleStat(AttributeManager.PROJECTILE_DAMAGE, newAmount);
             } else {
                 newAmount = data.scaleStat(AttributeManager.MELEE_DAMAGE, newAmount);
+            }
+            Random random = new Random();
+            int i = random.nextInt(100);
+            if (i < data.scaleStat(AttributeManager.CRITICAL_CHANCE, 0)) {
+                newAmount = newAmount * (data.scaleStat(AttributeManager.CRITICAL_DAMAGE, 20) / 100.0D);
             }
             event.setDamage(newAmount);
         }
@@ -175,11 +182,24 @@ public class AttributeListener extends SkillAPIListener {
             final PlayerData data = SkillAPI.getPlayerData(player);
 
             if (event.getClassification().equalsIgnoreCase(PHYSICAL)) {
-                event.setDamage(data.scaleStat(AttributeManager.PHYSICAL_DAMAGE, event.getDamage()));
+
+                double newAmount = data.scaleStat(AttributeManager.PHYSICAL_DAMAGE, event.getDamage());
+                Random random = new Random();
+                int i = random.nextInt(100);
+                if (i < data.scaleStat(AttributeManager.CRITICAL_CHANCE, 5)) {
+                    newAmount = newAmount * (data.scaleStat(AttributeManager.CRITICAL_DAMAGE, 20) / 100.0D);
+                }
+                event.setDamage(newAmount);
             } else {
                 final String classified = AttributeManager.SKILL_DAMAGE + "-" + event.getClassification();
-                final double firstPass  = data.scaleStat(classified, event.getDamage());
-                final double newAmount  = data.scaleStat(AttributeManager.SKILL_DAMAGE, firstPass);
+                final double firstPass = data.scaleStat(classified, event.getDamage());
+                double newAmount = data.scaleStat(AttributeManager.SKILL_DAMAGE, firstPass);
+
+                Random random = new Random();
+                int i = random.nextInt(100);
+                if (i < data.scaleStat(AttributeManager.CRITICAL_CHANCE, 5)) {
+                    newAmount = newAmount * (data.scaleStat(AttributeManager.CRITICAL_DAMAGE, 20) / 100.0D);
+                }
                 event.setDamage(newAmount);
             }
         }

@@ -139,7 +139,7 @@ public class MainListener extends SkillAPIListener {
         else
             player = Bukkit.getOfflinePlayer(event.getName());
 
-        if (SkillAPI.getSettings().isUseSql() && SkillAPI.getSettings().getSqlDelay() > 0)
+        if ((SkillAPI.getSettings().isUseSql() || SkillAPI.getSettings().isUseMongo()) && SkillAPI.getSettings().getSqlDelay() > 0)
             SkillAPI.initFakeData(player);
         else
             SkillAPI.loadPlayerData(player);
@@ -162,7 +162,7 @@ public class MainListener extends SkillAPIListener {
             return;
 
         final int delay = SkillAPI.getSettings().getSqlDelay();
-        if (SkillAPI.getSettings().isUseSql() && delay > 0) {
+        if ((SkillAPI.getSettings().isUseSql() || SkillAPI.getSettings().isUseMongo()) && delay > 0) {
             final BukkitTask task = SkillAPI.schedule(() -> {
                 try {
                     SkillAPI.reloadPlayerData(player);

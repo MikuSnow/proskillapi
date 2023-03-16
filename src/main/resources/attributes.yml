@@ -1,8 +1,8 @@
 # Attributes.yml
-#
+
 # For full details, visit
 # http://dev.bukkit.org/bukkit-plugins/skillapi/pages/attributes/
-#
+
 # List of available stats to modify:
 #   armor            | [PREM, 1.9+] Vanilla damage mitigation
 #   armor-toughness  | [PREM, 1.9+] Secondary vanilla damage mitigation
@@ -24,92 +24,86 @@
 #   physical-defense | The amount of damage taken by physical (basic or projectile) attacks
 #   skill-damage	 | The amount of damage done by skills
 #   skill-defense    | The amount of damage taken by skills
-
 #   skill-damage-<classification>  | [PREM] The amount of damage done by skills with the specified classification
 #   skill-defense-<classification> | [PREM] The amount of damage taken by skills with the specified classification
-vitality:
-  display: 'Vitality'
-  max: 999
-  icon: 'ink sack'
-  icon-data: 1
+#   critical-damage  | 暴击伤害，默认值为20%
+#   critical-chance  | 暴击概率，默认值位5%
+
+health:
+  display: '生命'
+  max: '9999999999'
+  icon: 'STONE'
+  icon-data: '100001'
   icon-lore:
-  - '&6Vitality &7(&2{amount}&7)'
-  - ''
-  - '&7Grants 1 health per'
-  - '&7point invested.'
+    - '&6生命值 &7(&2{amount}&7)'
   global:
-    condition: {}
-    mechanic: {}
-    target: {}
+    condition:  {}
+    mechanic:  {}
+    target:  {}
   stats:
     health: 'a+v'
-spirit:
-  display: 'Spirit'
-  max: 999
-  icon: 'ink sack'
-  icon-data: 6
+defense:
+  display: '防御'
+  max: '9999999999'
+  icon: 'STONE'
+  icon-data: '100002'
   icon-lore:
-  - '&6Spirit &7(&2{amount}&7)'
-  - ''
-  - '&7Grants 1 mana and 2.5%'
-  - '&7mana regeneration per'
-  - '&7point invested.'
+    - '&6防御力 &7(&2{amount}&7)'
   global:
-    condition: {}
-    mechanic: {}
-    target: {}
+    condition:  {}
+    mechanic:  {}
+    target:  {}
   stats:
-    mana: 'a+v'
-    mana-regen: 'a*0.025+1*v'
-intelligence:
-  display: 'Intelligence'
-  max: 999
-  icon: 'ink sack'
-  icon-data: 5
+    physical-defense: 'v * (1 - (a/500 + a))'
+physicaldamage:
+  display: '物攻'
+  max: '9999999999'
+  icon: 'STONE'
+  icon-data: '100003'
   icon-lore:
-  - '&6Intelligence &7(&2{amount}&7)'
-  - ''
-  - '&7Grants 2.5% increased'
-  - '&7skill damage per point'
-  - '&7invested.'
+    - '&6攻击力 &7(&2{amount}&7)'
   global:
-    condition: {}
-    mechanic:
-      Damage-value: 'a*0.025+1*v'
-    target: {}
-dexterity:
-  display: 'Dexterity'
-  max: 999
-  icon: 'ink sack'
-  icon-data: 10
-  icon-lore:
-  - '&6Dexterity &7(&2{amount}&7)'
-  - ''
-  - '&7Grants 2.5% increased'
-  - '&7range per point invested.'
-  global:
-    condition: {}
-    mechanic: {}
-    target:
-      Cone-range: 'a*0.025+1*v'
-      Linear-range: 'a*0.025+1*v'
-      Location-range: 'a*0.025+1*v'
-      Nearest-radius: 'a*0.025+1*v'
-      Single-range: 'a*0.025+1*v'
-strength:
-  display: 'Strength'
-  max: 999
-  icon: 'ink sack'
-  icon-data: 14
-  icon-lore:
-  - '&6Strength &7(&2{amount}&7)'
-  - ''
-  - '&7Grants 2.5% increased'
-  - '&7non-skill damage per'
-  - '&7point invested.'
-  global:
-    condition: {}
-    mechanic: {}
-    target: {}
+    condition:  {}
+    mechanic:  {}
+    target:  {}
   stats:
-    physical-damage: 'a*0.025+1*v'
+    physical-damage: 'v + a'
+skilldamage:
+  display: '法强'
+  max: '9999999999'
+  icon: 'STONE'
+  icon-data: '100004'
+  icon-lore:
+    - '&6攻击力 &7(&2{amount}&7)'
+  global:
+    condition:  {}
+    mechanic:  {}
+    target:  {}
+  stats:
+    skill-damage: 'v * (1 + a / 100)'
+criticaldamage:
+  display: '暴击伤害'
+  max: '9999999999'
+  icon: 'STONE'
+  icon-data: '100005'
+  icon-lore:
+    - '&6暴击伤害 &7(&2{amount}&7)'
+  global:
+    condition:  {}
+    mechanic:  {}
+    target:  {}
+  stats:
+    critical-damage: 'v + a'
+criticalchance:
+  display: '暴击概率'
+  max: '9999999999'
+  icon: 'STONE'
+  icon-data: '100006'
+  icon-lore:
+    - '&6暴击伤害 &7(&2{amount}&7)'
+  global:
+    condition:  {}
+    mechanic:  {}
+    target:  {}
+  stats:
+    critical-chance: 'v + a'

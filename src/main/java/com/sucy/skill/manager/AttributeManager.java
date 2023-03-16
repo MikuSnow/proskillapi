@@ -77,6 +77,8 @@ public class AttributeManager {
     public static final String HUNGER_HEAL        = "hunger-heal";
     public static final String COOLDOWN           = "cooldown";
     public static final String KNOCKBACK_RESIST   = "knockback-resist";
+    public static final String CRITICAL_DAMAGE   = "critical-damage"; // 暴击伤害 每一点增加1%伤害
+    public static final String CRITICAL_CHANCE   = "critical-chance"; // 暴击概率 每一点增加1%概率
 
     private final HashMap<String, Attribute>       attributes  = new LinkedHashMap<>();
     private final HashMap<String, Attribute>       lookup      = new HashMap<>();

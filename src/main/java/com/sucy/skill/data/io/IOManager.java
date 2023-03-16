@@ -264,6 +264,151 @@ public abstract class IOManager {
 
         return data;
     }
+    /**
+     * Loads data from the DataSection for the given player
+     *
+     * @param player player to load for
+     * @param file   DataSection containing the account info
+     * @return the loaded player account data
+     */
+    protected PlayerAccounts loadMongo(OfflinePlayer player, DataSection file) {
+        PlayerAccounts data     = new PlayerAccounts(player);
+        DataSection    accounts = file.getSection(ACCOUNTS);
+        if (accounts == null) {
+            data.getActiveData().endInit();
+            data.isLoaded(true);
+            return data;
+        }
+        for (String accountKey : accounts.keys()) {
+            DataSection account = accounts.getSection(accountKey);
+            PlayerData  acc     = null;
+            try {
+                acc = data.getData(Integer.parseInt(accountKey.replace(ACCOUNT_PREFIX, "")), player, true);
+            } catch (NumberFormatException e) {
+                Logger.bug("Could not parse account key '" + accountKey + "' for player " + player.getUniqueId());
+                Logger.bug("This is related to ticket #154. Please paste the player's file and this stack trace.");
+                Logger.bug("https://github.com/promcteam/proskillapi/issues/154");
+                e.printStackTrace();
+            }
+
+            // Load classes
+            DataSection classes = account.getSection(CLASSES);
+            if (classes != null) {
+                for (String classKey : classes.keys()) {
+                    RPGClass rpgClass = SkillAPI.getClass(classKey);
+                    if (rpgClass != null) {
+                        PlayerClass c         = acc.setClass(null, rpgClass, true);
+                        DataSection classData = classes.getSection(classKey);
+                        int         levels    = ((Number) classData.getDouble(LEVEL)).intValue();
+                        if (levels > 0)
+                            c.setLevel(levels);
+                        c.setPoints(((Number) classData.getDouble(POINTS)).intValue());
+                        if (classData.has("total-exp"))
+                            c.setExp(classData.getDouble("total-exp") - c.getTotalExp());
+                        else
+                            c.setExp(classData.getDouble(EXP));
+                    }
+                }
+            }
+
+            // Load skills
+            DataSection skills = account.getSection(SKILLS);
+            if (skills != null) {
+                for (String skillKey : skills.keys()) {
+                    DataSection skill     = skills.getSection(skillKey);
+                    PlayerSkill skillData = acc.getSkill(skillKey);
+                    if (skillData != null) {
+                        skillData.setLevel(((Number) skill.getDouble(LEVEL)).intValue());
+                        skillData.addCooldown(((Number) skill.getDouble(COOLDOWN, 0)).intValue());
+                    }
+                }
+            }
+
+            // Load skill bar
+            if (SkillAPI.getSettings().isSkillBarEnabled() || SkillAPI.getSettings().isUsingCombat()) {
+                final DataSection    skillBar = account.getSection(SKILL_BAR);
+                final PlayerSkillBar bar      = acc.getSkillBar();
+                if (skillBar != null && bar != null) {
+                    boolean enabled = skillBar.getBoolean(ENABLED, true);
+                    for (final String key : skillBar.keys()) {
+                        final boolean[] locked = SkillAPI.getSettings().getLockedSlots();
+                        if (key.equals(SLOTS)) {
+                            for (int i = 0; i < 9; i++)
+                                if (!bar.isWeaponSlot(i) && !locked[i])
+                                    bar.getData().remove(i + 1);
+
+                            final List<String> slots = skillBar.getList(SLOTS);
+                            for (final String slot : slots) {
+                                int i = Integer.parseInt(slot);
+                                if (!locked[i - 1])
+                                    bar.getData().put(i, UNASSIGNED);
+                            }
+                        } else if (SkillAPI.getSkill(key) != null)
+                            bar.getData().put(((Number) skillBar.getDouble(key)).intValue(), key);
+                    }
+
+                    bar.applySettings();
+                }
+            }
+
+            // Load combos
+            if (SkillAPI.getSettings().isCustomCombosAllowed()) {
+                DataSection  combos    = account.getSection(COMBOS);
+                PlayerCombos comboData = acc.getComboData();
+                ComboManager cm        = SkillAPI.getComboManager();
+                if (combos != null && comboData != null) {
+                    for (String key : combos.keys()) {
+                        Skill skill = SkillAPI.getSkill(key);
+                        if (acc.hasSkill(key) && skill != null && skill.canCast()) {
+                            int combo = cm.parseCombo(combos.getString(key));
+                            if (combo == -1) Logger.invalid("Invalid skill combo: " + combos.getString(key));
+                            else comboData.setSkill(skill, combo);
+                        }
+                    }
+                }
+            }
+
+            // Load attributes
+            if (SkillAPI.getSettings().isAttributesEnabled()) {
+                acc.setAttribPoints(((Number) account.getDouble(ATTRIB_POINTS, 0)).intValue());
+                DataSection attribs = account.getSection(ATTRIBS);
+                if (attribs != null) {
+                    for (String key : attribs.keys()) {
+                        acc.getAttributeData().put(key, ((Number) attribs.getDouble(key)).intValue());
+                    }
+                }
+            }
+
+            // Load cast bars
+            if (SkillAPI.getSettings().isCastEnabled()) {
+                acc.getCastBars().reset();
+                acc.getCastBars().load(account.getSection(HOVER), true);
+                acc.getCastBars().load(account.getSection(INSTANT), false);
+            }
+
+            acc.setHungerValue(account.getDouble(HUNGER, 1));
+
+            // Extra data
+            if (account.has(EXTRA) && account.getSection(EXTRA) != null)
+                acc.getExtraData().applyDefaults(account.getSection(EXTRA));
+
+            acc.endInit();
+
+            // Load binds
+            DataSection binds = account.getSection(BINDS);
+            if (binds != null) {
+                for (String bindKey : binds.keys()) {
+                    acc.bind(Material.valueOf(bindKey), acc.getSkill(binds.getString(bindKey)));
+                }
+            }
+        }
+        data.setAccount(((Number) file.getDouble(ACTIVE, data.getActiveId())).intValue(), false);
+        data.getActiveData().setLastHealth(file.getDouble(HEALTH));
+        data.getActiveData().setMana(file.getDouble(MANA, data.getActiveData().getMana()));
+        data.isLoaded(true);
+
+        return data;
+    }
 
     protected DataSection save(PlayerAccounts data) {
         try {
